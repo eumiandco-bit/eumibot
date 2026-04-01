@@ -1,0 +1,54 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+tree = bot.tree   # ← Dapat may ganito sa itaas
+
+# ====================== CHANNEL ID ======================
+TASK_POOL_CHANNEL_ID = 1487625296063500419
+
+@tree.command(name="newtask", description="Create a new task")
+@app_commands.describe(
+    task_id="Task number",
+    priority="Priority",
+    description="Task description"
+)
+@app_commands.choices(priority=[
+    app_commands.Choice(name="High", value="High"),
+    app_commands.Choice(name="Medium", value="Medium"),
+    app_commands.Choice(name="Low", value="Low")
+])
+async def newtask(interaction: discord.Interaction, task_id: str, priority: app_commands.Choice[str], description: str):
+    
+    await interaction.response.defer(ephemeral=True)
+
+    task_pool = interaction.guild.get_channel(TASK_POOL_CHANNEL_ID)
+    if not task_pool:
+        await interaction.followup.send("❌ Hindi mahanap ang #task-pool channel!", ephemeral=True)
+        return
+
+    embed = discord.Embed(title="Task Management", color=0x2b2d31)
+    embed.add_field(name="New Task Created", value=f"**TASK #{task_id}**", inline=False)
+    embed.add_field(name="Task", value=description, inline=False)
+    embed.add_field(name="Priority", value=priority.value.upper(), inline=False)
+    embed.add_field(name="Status", value="Available to Claim", inline=False)
+
+    await task_pool.send(embed=embed)
+    await interaction.followup.send(f"✅ Task #{task_id} has been posted in #task-pool!", ephemeral=True)
+
+
+@bot.event
+async def on_ready():
+    print(f"✅ Bot is online! Logged in as {bot.user}")
+    try:
+        await tree.sync()
+        print("✅ Slash commands synced!")
+    except Exception as e:
+        print(f"Sync error: {e}")
+
+
+bot.run("MTQ4NzYxNDE0MDU4MjQ2MTQ0MA.GM4IDA.Raxv0IvsVYMvo9qqLUJJxyxhlYpF_UyBaimpxU")
